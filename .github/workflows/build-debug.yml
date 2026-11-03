@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore: [.ci-diagnostics/**, public-downloads/**]
+    paths-ignore: [.ci-diagnostics/**, public-downloads/**, source-parts/**]
 permissions:
   contents: write
 jobs:
