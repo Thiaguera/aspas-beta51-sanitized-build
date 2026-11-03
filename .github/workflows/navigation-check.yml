@@ -1,0 +1,58 @@
+name: Android navigation check
+on:
+  push:
+    branches:
+      - test/emulator-demo-66063-isolated
+    paths:
+      - .github/workflows/navigation-check.yml
+      - tools/emulator-navigation-safe.sh
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  navigation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore sanitized sources
+        run: node tools/restore-sources.cjs
+      - name: Scan sanitized sources
+        run: node tools/deep-scan.cjs
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Create temporary demo login
+        run: |
+          ASPAS_DEMO_PIN=$(shuf -i 100000-999999 -n 1)
+          echo "::add-mask::$ASPAS_DEMO_PIN"
+          export ASPAS_DEMO_PIN
+          echo "ASPAS_DEMO_PIN=$ASPAS_DEMO_PIN" >> "$GITHUB_ENV"
+          node tools/configure-demo.cjs > /dev/null
+      - name: Install verified Gradle
+        run: |
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  /tmp/gradle.zip" | sha256sum --check --strict
+          unzip -q /tmp/gradle.zip -d /opt
+          echo /opt/gradle-8.9/bin >> "$GITHUB_PATH"
+      - name: Build demo APK
+        run: gradle --no-daemon assembleDebug
+      - name: Enable KVM
+        run: |
+          test -e /dev/kvm
+          sudo chmod a+rw /dev/kvm
+          test -r /dev/kvm
+          test -w /dev/kvm
+      - name: Run demo navigation
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash tools/emulator-navigation-safe.sh
