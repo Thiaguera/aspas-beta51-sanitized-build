@@ -8,3 +8,7 @@ local.properties
 .env
 .env.*
 *.log
+
+# Only the CI-verified, explicitly public debug APK is exempt.
+!public-downloads/
+!public-downloads/aspas-beta51-66062-debug.apk
