@@ -1,1 +1,1 @@
-Build debug sanitizada; run 41585541036, commit ad7ad58572150bddaca899011c2d241b4b139b33. Publicada somente após verificação ZIP/AndroidManifest e scan de padrões de credenciais. Não homologada para operação.
+Build sanitizada e verificada; run 41629490240, commit 9e9da95f8edd99f50ce4bcb57eebcc6eb3469ec6. Fontes restaurados e APK descompactado passaram no scan. Não homologada para operação.
