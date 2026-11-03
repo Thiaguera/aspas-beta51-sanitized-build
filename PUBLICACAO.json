@@ -1,6 +1,6 @@
 {
-  "versionCode": 66062,
-  "versionName": "0.2.9-beta.51-conta-sem-cancelados",
+  "versionCode": 66063,
+  "versionName": "0.2.9-beta.51-sanitized-demo",
   "applicationId": "br.com.aspas.contingencia.beta51test",
   "publicCopy": true,
   "credentialsIncluded": false,
