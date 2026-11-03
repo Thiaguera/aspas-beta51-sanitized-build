@@ -4,45 +4,35 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore:
-      - .ci-diagnostics/**
-      - public-downloads/**
-
+    paths-ignore: [.ci-diagnostics/**, public-downloads/**]
 permissions:
   contents: write
-
 jobs:
   build-debug:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
-        id: java
+      - id: java
         continue-on-error: true
         uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - name: Restore sanitized sources
-        id: restore
+        with: {distribution: temurin, java-version: "17"}
+      - id: restore
         continue-on-error: true
         run: node tools/restore-sources.cjs
-      - name: Install Gradle 8.9
-        id: gradle_install
+      - id: gradle_install
         continue-on-error: true
         run: |
           curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
           echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  /tmp/gradle.zip" | sha256sum --check --strict
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
-      - name: Assemble unsigned debug APK
-        id: assemble
+      - id: assemble
         continue-on-error: true
         run: gradle --no-daemon --stacktrace assembleDebug
       - name: Verify and scan APK
         id: apk_scan
-        if: steps.assemble.outcome == "success"
+        if: steps.assemble.outcome == 'success'
         run: |
           set -euo pipefail
           apk=app/build/outputs/apk/debug/app-debug.apk
@@ -54,7 +44,7 @@ jobs:
           sha256sum "$apk"
       - name: Publish scanned APK to public repository
         id: publication
-        if: steps.apk_scan.outcome == "success"
+        if: steps.apk_scan.outcome == 'success'
         run: |
           set -euo pipefail
           apk=app/build/outputs/apk/debug/app-debug.apk
@@ -68,19 +58,19 @@ jobs:
           git diff --cached --quiet || git commit -m "Publish scanned sanitized debug APK"
           git push
       - name: Upload scanned APK artifact
-        if: steps.apk_scan.outcome == "success"
+        if: steps.apk_scan.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: aspas-beta51-66062-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
-      - name: Fail if required build checks failed
+      - name: Fail if a check failed
         if: always()
         run: |
-          test "${{ steps.java.outcome }}" = "success"
-          test "${{ steps.restore.outcome }}" = "success"
-          test "${{ steps.gradle_install.outcome }}" = "success"
-          test "${{ steps.assemble.outcome }}" = "success"
-          test "${{ steps.apk_scan.outcome }}" = "success"
-          test "${{ steps.publication.outcome }}" = "success"
+          test "${{ steps.java.outcome }}" = success
+          test "${{ steps.restore.outcome }}" = success
+          test "${{ steps.gradle_install.outcome }}" = success
+          test "${{ steps.assemble.outcome }}" = success
+          test "${{ steps.apk_scan.outcome }}" = success
+          test "${{ steps.publication.outcome }}" = success
