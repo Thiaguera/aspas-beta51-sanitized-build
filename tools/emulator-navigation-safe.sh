@@ -20,8 +20,21 @@ sleep 8
 adb shell pidof br.com.aspas.contingencia.beta51test >/dev/null
 echo "::notice::PASS launch"
 phase=login-screen
-adb shell uiautomator dump /sdcard/nav-check.xml >/dev/null
-adb pull /sdcard/nav-check.xml /tmp/nav-check.xml >/dev/null 2>&1
+for attempt in 1 2 3 4; do
+  adb shell uiautomator dump /sdcard/nav-check.xml >/dev/null
+  adb pull /sdcard/nav-check.xml /tmp/nav-check.xml >/dev/null 2>&1
+  if grep -qF "Usuário demonstrativo 1" /tmp/nav-check.xml; then break; fi
+  sleep 8
+done
+python3 - <<PY
+import xml.etree.ElementTree as ET
+root = ET.parse("/tmp/nav-check.xml").getroot()
+nodes = list(root.iter("node"))
+text = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in nodes)
+checks = {"webview": any("WebView" in n.get("class", "") for n in nodes), "demo_user": "Usuário demonstrativo 1" in text, "login": any(x in text.lower() for x in ["entrar", "login", "senha", "pin"]), "mesas": "mesa" in text.lower(), "text_nodes": any(n.get("text", "") for n in nodes), "editable": any(n.get("class", "").endswith("EditText") for n in nodes)}
+for key, value in checks.items():
+    print("::notice::UI_" + key + "=" + str(value))
+PY
 grep -qF "Usuário demonstrativo 1" /tmp/nav-check.xml
 echo "::notice::PASS login screen"
 phase=demo-login
