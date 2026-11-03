@@ -2,6 +2,9 @@ name: Build sanitized debug APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -18,7 +21,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -32,7 +35,7 @@ jobs:
       - name: Install Gradle 8.9
         run: |
           curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          echo 'd536ef36a8f4636c13e3f39273d0d9b0f93efc7c2711b8f68ab5a74c3bf85c7c  /tmp/gradle.zip' | sha256sum --check --strict
+          echo "d536ef36a8f4636c13e3f39273d0d9b0f93efc7c2711b8f68ab5a74c3bf85c7c  /tmp/gradle.zip" | sha256sum --check --strict
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
 
