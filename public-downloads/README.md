@@ -1,0 +1,1 @@
+Build debug sanitizada; run 41585289603, commit 400fc0018f6ba644a269dce0ff920b97375ef531. Publicada somente após verificação ZIP/AndroidManifest e scan de padrões de credenciais. Não homologada para operação.
