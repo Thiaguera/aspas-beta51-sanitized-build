@@ -1,0 +1,87 @@
+name: Offline emulator demo — sanitized 66063
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [test/emulator-demo-66063-isolated]
+    paths: [.github/workflows/emulator-demo-66063.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  emulator-demo:
+    name: Build and navigate with demo-only data
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore sanitized sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tools/restore-sources.cjs
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in Path('app/src/main/assets').glob('*'):
+              if p.is_file() and p.suffix in {'.js', '.html'}:
+                  p.write_text(p.read_text().replace('Usuário demonstrativo 1 V. Pereira', 'Usuário demonstrativo 1'), encoding='utf-8')
+          PY
+          ASPAS_DEMO_PIN="$(shuf -i 100000-999999 -n 1)"
+          echo "ASPAS_DEMO_PIN=$ASPAS_DEMO_PIN" >> "$GITHUB_ENV"
+          node tools/configure-demo.cjs >/dev/null
+      - name: Scan restored sources
+        run: node tools/deep-scan.cjs
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install verified Gradle
+        run: |
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  /tmp/gradle.zip" | sha256sum --check --strict
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
+      - name: Assemble and scan debug APK
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace assembleDebug
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -t "$apk" >/dev/null
+          unzip -l "$apk" | grep -q AndroidManifest.xml
+          node tools/deep-scan.cjs --apk "$apk"
+      - name: Navigate offline demo in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: google_apis
+          arch: x86_64
+          profile: Pixel_2
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell svc wifi disable || true
+            adb shell svc data disable || true
+            adb shell am force-stop br.com.aspas.contingencia.beta51test
+            adb shell monkey -p br.com.aspas.contingencia.beta51test 1 >/dev/null
+            sleep 5
+            adb shell uiautomator dump /sdcard/login.xml >/dev/null
+            adb pull /sdcard/login.xml /tmp/login.xml >/dev/null
+            grep -q 'Usuário demonstrativo 1' /tmp/login.xml
+            adb shell input tap 540 1040
+            adb shell input text "$ASPAS_DEMO_PIN"
+            adb shell input keyevent 66
+            sleep 4
+            adb shell uiautomator dump /sdcard/mesas.xml >/dev/null
+            adb pull /sdcard/mesas.xml /tmp/mesas.xml >/dev/null
+            grep -q 'Mesa' /tmp/mesas.xml
+            adb shell input tap 165 1870
+            sleep 2
+            adb shell uiautomator dump /sdcard/pedido.xml >/dev/null
+            adb pull /sdcard/pedido.xml /tmp/pedido.xml >/dev/null
+            grep -q 'Pedido' /tmp/pedido.xml
+            rm -f /tmp/login.xml /tmp/mesas.xml /tmp/pedido.xml
