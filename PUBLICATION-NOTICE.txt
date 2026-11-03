@@ -1,1 +1,0 @@
-Public sanitized build source. No credentials or operational data.
