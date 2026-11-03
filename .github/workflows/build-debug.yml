@@ -1,0 +1,48 @@
+name: Build sanitized debug APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout public sanitized source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform 35
+        run: sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Restore sanitized source files
+        run: node tools/restore-sources.cjs
+
+      - name: Install Gradle 8.9
+        run: |
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          echo 'd536ef36a8f4636c13e3f39273d0d9b0f93efc7c2711b8f68ab5a74c3bf85c7c  /tmp/gradle.zip' | sha256sum --check --strict
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
+
+      - name: Assemble unsigned debug APK
+        run: gradle --no-daemon --stacktrace assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aspas-beta51-66062-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
