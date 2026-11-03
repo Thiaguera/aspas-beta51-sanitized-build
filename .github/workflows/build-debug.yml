@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths-ignore:
       - .ci-diagnostics/**
+      - public-downloads/**
 
 permissions:
   contents: write
@@ -15,92 +16,71 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - name: Checkout public sanitized source
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Set up JDK 17
         id: java
-        uses: actions/setup-java@v5
         continue-on-error: true
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-
-
-      - name: Restore sanitized source files
+      - name: Restore sanitized sources
         id: restore
         continue-on-error: true
-        run: |
-          set -o pipefail
-          node tools/restore-sources.cjs 2>&1 | tee /tmp/restore.log
-
+        run: node tools/restore-sources.cjs
       - name: Install Gradle 8.9
         id: gradle_install
         continue-on-error: true
         run: |
-          set -o pipefail
-          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip 2>&1 | tee /tmp/gradle-download.log
-          echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  /tmp/gradle.zip" | sha256sum --check --strict 2>&1 | tee -a /tmp/gradle-download.log
+          curl --fail --location --retry 3 --output /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          echo "d725d707bfabd4dfdc958c624003b3c80accc03f7037b5122c4b1d0ef15cecab  /tmp/gradle.zip" | sha256sum --check --strict
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-8.9/bin" >> "$GITHUB_PATH"
-
       - name: Assemble unsigned debug APK
         id: assemble
         continue-on-error: true
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Verify and scan APK
+        id: apk_scan
+        if: steps.assemble.outcome == "success"
         run: |
-          set -o pipefail
-          gradle --no-daemon --stacktrace assembleDebug 2>&1 | tee /tmp/gradle-build.log
-
-      - name: Prepare sanitized diagnostic
-        if: always()
+          set -euo pipefail
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          unzip -t "$apk" >/dev/null
+          unzip -l "$apk" | grep -q AndroidManifest.xml
+          forbidden="gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|sk_(live|test)_[A-Za-z0-9]{16,}"
+          ! strings -a "$apk" | grep -E -i "$forbidden"
+          sha256sum "$apk"
+      - name: Publish scanned APK to public repository
+        id: publication
+        if: steps.apk_scan.outcome == "success"
         run: |
-          mkdir -p .ci-diagnostics
-          redact() { sed -E -e "s/(token|password|secret|api[_-]?key|authorization)[=:][^[:space:]]+/\1=[REDACTED]/Ig" -e "s/gh[pousr]_[A-Za-z0-9_]+/[REDACTED_GITHUB_TOKEN]/g"; }
-          {
-            echo "# Diagnóstico da compilação de teste"
-            echo
-            echo "Arquivo automático sem fontes restaurados, variáveis de ambiente ou credenciais."
-            echo
-            echo "- Commit analisado: ${GITHUB_SHA}"
-            echo "- Execução: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-            echo "- JDK: ${{ steps.java.outcome }}"
-            echo "- Plataforma Android: fornecida pela imagem do runner; não é instalada por sdkmanager."
-            echo "- Restauração: ${{ steps.restore.outcome }}"
-            echo "- Gradle 8.9: ${{ steps.gradle_install.outcome }}"
-            echo "- assembleDebug: ${{ steps.assemble.outcome }}"
-            for log in /tmp/restore.log /tmp/sdkmanager.log /tmp/gradle-download.log /tmp/gradle-build.log; do
-              if [ -f "$log" ]; then
-                echo
-                echo "## $(basename "$log")"
-                echo '```text'
-                tail -n 350 "$log" | redact
-                echo '```'
-              fi
-            done
-          } > .ci-diagnostics/latest.md
-
-      - name: Publish diagnostic in this public test repository
-        if: always()
-        run: |
+          set -euo pipefail
+          apk=app/build/outputs/apk/debug/app-debug.apk
+          mkdir -p public-downloads
+          cp "$apk" public-downloads/aspas-beta51-66062-debug.apk
+          sha256sum public-downloads/aspas-beta51-66062-debug.apk > public-downloads/aspas-beta51-66062-debug.apk.sha256
+          printf "Build debug sanitizada; run %s, commit %s. Publicada somente após verificação ZIP/AndroidManifest e scan de padrões de credenciais. Não homologada para operação.\n" "$GITHUB_RUN_ID" "$GITHUB_SHA" > public-downloads/README.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .ci-diagnostics/latest.md
-          git diff --cached --quiet || git commit -m "Publish sanitized CI diagnostic"
+          git add public-downloads
+          git diff --cached --quiet || git commit -m "Publish scanned sanitized debug APK"
           git push
-
-      - name: Upload debug APK
-        if: always()
+      - name: Upload scanned APK artifact
+        if: steps.apk_scan.outcome == "success"
         uses: actions/upload-artifact@v4
         with:
           name: aspas-beta51-66062-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
-
-      - name: Mark build as failed after publishing diagnostic
+      - name: Fail if required build checks failed
         if: always()
         run: |
           test "${{ steps.java.outcome }}" = "success"
           test "${{ steps.restore.outcome }}" = "success"
           test "${{ steps.gradle_install.outcome }}" = "success"
           test "${{ steps.assemble.outcome }}" = "success"
+          test "${{ steps.apk_scan.outcome }}" = "success"
+          test "${{ steps.publication.outcome }}" = "success"
