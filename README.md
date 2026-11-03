@@ -1,6 +1,6 @@
-# ASPAS Contingência — Beta 51 teste (66062)
+# ASPAS Contingência — Beta 51 demonstração sanitizada (66063)
 
-Cópia pública sanitizada dos fontes `0.2.9-beta.51-conta-sem-cancelados`, pacote `br.com.aspas.contingencia.beta51test`. Não é o projeto Recuperação em Kotlin, nem a antiga cópia para Bolt.
+Cópia pública sanitizada dos fontes `0.2.9-beta.51-sanitized-demo`, pacote `br.com.aspas.contingencia.beta51test`. Não é o projeto Recuperação em Kotlin, nem a antiga cópia para Bolt.
 
 ## Arquitetura preservada
 - Interface/regras: HTML, CSS e JavaScript puro em `app/src/main/assets`.
@@ -22,7 +22,7 @@ Para visualizar apenas a interface: `python3 -m http.server 8000 --directory app
 ## Compilar
 Instale JDK 17, Android SDK platform 35 e Gradle 8.9. Configure o SDK via ANDROID_HOME ou `local.properties` local e execute `gradle assembleDebug`. Nenhum Gradle Wrapper foi encontrado nos fontes originais; não há wrapper inventado nesta cópia. O primeiro build pode baixar dependências. A configuração de resolução fixada na raiz veio do ambiente de compilação anterior.
 
-**Esta publicação não recompilou nem homologou o APK sanitizado.** O antigo relatório de build 66051 não foi incluído como se descrevesse esta versão 66062.
+**Esta publicação não recompilou nem homologou o APK sanitizado.** O antigo relatório de build 66051 não foi incluído como se descrevesse esta versão 66063.
 
 ## Evidências e bloqueios conhecidos
 Execute `node tests/verify-findings.js` e `node tests/reproduce-beta51-offline.js` (Node 18+). São harnesses com dados fictícios e stubs, não execução completa do app. Sucesso do primeiro significa que os defeitos históricos foram reproduzidos, **não que a sincronização está aprovada**.

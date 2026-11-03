@@ -9,7 +9,8 @@
       "source-parts/beta48-script.js.gz.b64.chunk04",
       "source-parts/beta48-script.js.gz.b64.chunk05",
       "source-parts/beta48-script.js.gz.b64.chunk06"
-    ]
+    ],
+    "sha256": "a74fc475fddf76735b7634a7ff52987bfccd8c039bace593d9e5d7681420d1e2"
   },
   {
     "path": "app/src/main/assets/assets-aspas-logo.png.b64",
@@ -19,34 +20,39 @@
       "source-parts/assets-aspas-logo.png.b64.gz.b64.chunk02",
       "source-parts/assets-aspas-logo.png.b64.gz.b64.chunk03",
       "source-parts/assets-aspas-logo.png.b64.gz.b64.chunk04"
-    ]
+    ],
+    "sha256": "e413e9941677b1ebe26aa2eeffe2a712dce4a62a0a07817203059b6d5ab26e79"
   },
   {
     "path": "app/src/main/assets/patch-printqueue.js",
     "parts": [
       "source-parts/patch-printqueue.js.gz.b64.chunk00",
       "source-parts/patch-printqueue.js.gz.b64.chunk01"
-    ]
+    ],
+    "sha256": "03c0b8a385096afd74e8d5fd53b099728d2e9ef99c250a64c080d00e7784e37c"
   },
   {
     "path": "app/src/main/assets/patch-sync.js",
     "parts": [
       "source-parts/patch-sync.js.gz.b64.chunk00",
       "source-parts/patch-sync.js.gz.b64.chunk01"
-    ]
+    ],
+    "sha256": "db47292b4f40a936978fdc7d1465148ccd9a7bf73ea093681784a7f191df935a"
   },
   {
     "path": "app/src/main/assets/patch-security.js",
     "parts": [
       "source-parts/patch-security.js.gz.b64.chunk00",
       "source-parts/patch-security.js.gz.b64.chunk01"
-    ]
+    ],
+    "sha256": "ffa2daa1eebab4e799027c22aa2802a26139a4b98768a026fabfb0d221c36f87"
   },
   {
     "path": "app/src/main/assets/core-events.js",
     "parts": [
       "source-parts/core-events.js.gz.b64.chunk00"
-    ]
+    ],
+    "sha256": "ca1c71fad63a2035929212fb0cae4db1a24b90cd75a1ea5c0170a39b7f43366f"
   },
   {
     "path": "app/src/main/assets/index.html",
@@ -54,12 +60,14 @@
       "source-parts/index.html.gz.b64.chunk00",
       "source-parts/index.html.gz.b64.chunk01",
       "source-parts/index.html.gz.b64.chunk02"
-    ]
+    ],
+    "sha256": "02ef6b41bfc1f4e0abaf3b5ccba4d36954615b362d2f6a35fabbf4a288260245"
   },
   {
     "path": "app/src/main/java/br/com/aspas/contingencia/MainActivity.java",
     "parts": [
       "source-parts/MainActivity.java.gz.b64.chunk00"
-    ]
+    ],
+    "sha256": "aaa9c74dc2ffec3b65bd832f24d28a20ca6434d4876cc3dfd793a521a79b019c"
   }
 ]
