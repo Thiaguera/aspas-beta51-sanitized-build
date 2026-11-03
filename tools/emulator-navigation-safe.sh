@@ -22,34 +22,25 @@ phase=ui-dump
 timeout 60s adb shell uiautomator dump /sdcard/nav-check.xml >/dev/null
 timeout 20s adb pull /sdcard/nav-check.xml /tmp/nav-check.xml >/dev/null 2>&1
 phase=ui-analysis
-python3 - <<PY
+python3 - <<'PY'
 import xml.etree.ElementTree as ET
-root = ET.parse("/tmp/nav-check.xml").getroot()
-nodes = list(root.iter("node"))
-text = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in nodes)
-checks = {"webview": any("WebView" in n.get("class", "") for n in nodes), "demo_user": "Usuário demonstrativo 1" in text, "login": any(x in text.lower() for x in ["entrar", "login", "senha", "pin"]), "mesas": "mesa" in text.lower(), "text_nodes": any(n.get("text", "") for n in nodes), "editable": any(n.get("class", "").endswith("EditText") for n in nodes)}
-print("::notice::UI " + " ".join(k + "=" + str(v) for k, v in checks.items()), flush=True)
+root = ET.parse('/tmp/nav-check.xml').getroot()
+nodes = list(root.iter('node'))
+text = ' '.join((n.get('text','') + ' ' + n.get('content-desc','')) for n in nodes)
+webview = any('WebView' in n.get('class','') for n in nodes)
+visible_text = any(n.get('text','') for n in nodes)
+demo_user = 'Usuário demonstrativo 1' in text
+print(f'::notice::UI webview={webview} visible_text={visible_text} demo_user={demo_user}')
+if webview and not visible_text:
+    print('::warning title=WebView opaque::Android UIAutomator sees the WebView container but not its HTML DOM; a missing user label does not prove the login is absent.')
 PY
+phase=webview-presence
+grep -q 'WebView' /tmp/nav-check.xml
 phase=login-selector
-grep -qF "Usuário demonstrativo 1" /tmp/nav-check.xml
-echo "::notice::PASS expected demo user visible"
-phase=demo-login
-timeout 20s adb shell input tap 540 1040
-timeout 20s adb shell input text "$ASPAS_DEMO_PIN"
-timeout 20s adb shell input keyevent 66
-sleep 7
-phase=mesas-dump
-timeout 60s adb shell uiautomator dump /sdcard/nav-check.xml >/dev/null
-timeout 20s adb pull /sdcard/nav-check.xml /tmp/nav-check.xml >/dev/null 2>&1
-phase=mesas-selector
-grep -qF "Mesa" /tmp/nav-check.xml
-echo "::notice::PASS demo login and mesas"
-phase=order
-timeout 20s adb shell input tap 165 1870
-sleep 4
-timeout 60s adb shell uiautomator dump /sdcard/nav-check.xml >/dev/null
-timeout 20s adb pull /sdcard/nav-check.xml /tmp/nav-check.xml >/dev/null 2>&1
-grep -qF "Pedido" /tmp/nav-check.xml
-echo "::notice::PASS order screen"
+if ! grep -qF 'Usuário demonstrativo 1' /tmp/nav-check.xml; then
+  echo '::error title=Login DOM not accessible::The native accessibility tree cannot select the HTML demo user. Do not infer credentials are invalid; use an isolated WebView DOM-debug probe next.'
+  exit 2
+fi
+echo '::notice::PASS native login selector exposed'
 rm -f /tmp/nav-check.xml
 timeout 20s adb shell rm -f /sdcard/nav-check.xml
