@@ -26,17 +26,6 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        id: android_sdk
-        uses: android-actions/setup-android@v3
-        continue-on-error: true
-
-      - name: Install Android platform 35
-        id: platform
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0" 2>&1 | tee /tmp/sdkmanager.log
 
       - name: Restore sanitized source files
         id: restore
@@ -75,8 +64,7 @@ jobs:
             echo "- Commit analisado: ${GITHUB_SHA}"
             echo "- Execução: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "- JDK: ${{ steps.java.outcome }}"
-            echo "- Android SDK: ${{ steps.android_sdk.outcome }}"
-            echo "- Plataforma Android 35: ${{ steps.platform.outcome }}"
+            echo "- Plataforma Android: fornecida pela imagem do runner; não é instalada por sdkmanager."
             echo "- Restauração: ${{ steps.restore.outcome }}"
             echo "- Gradle 8.9: ${{ steps.gradle_install.outcome }}"
             echo "- assembleDebug: ${{ steps.assemble.outcome }}"
@@ -84,9 +72,9 @@ jobs:
               if [ -f "$log" ]; then
                 echo
                 echo "## $(basename "$log")"
-                echo ```text
+                echo '```text'
                 tail -n 350 "$log" | redact
-                echo ```
+                echo '```'
               fi
             done
           } > .ci-diagnostics/latest.md
@@ -113,8 +101,6 @@ jobs:
         if: always()
         run: |
           test "${{ steps.java.outcome }}" = "success"
-          test "${{ steps.android_sdk.outcome }}" = "success"
-          test "${{ steps.platform.outcome }}" = "success"
           test "${{ steps.restore.outcome }}" = "success"
           test "${{ steps.gradle_install.outcome }}" = "success"
           test "${{ steps.assemble.outcome }}" = "success"
